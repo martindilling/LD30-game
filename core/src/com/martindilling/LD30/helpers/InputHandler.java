@@ -1,5 +1,7 @@
 package com.martindilling.LD30.helpers;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputProcessor;
 import com.martindilling.LD30.gameobjects.Ball;
 
@@ -25,12 +27,50 @@ public class InputHandler implements InputProcessor
 
     @Override
     public boolean keyDown(int keycode) {
-        return false;
+        switch (keycode)
+        {
+            case Keys.LEFT:
+                Gdx.app.log("InputHandler", "Keys.LEFT pressed");
+                ball.startMoving("left");
+                break;
+            case Keys.RIGHT:
+                Gdx.app.log("InputHandler", "Keys.RIGHT pressed");
+                ball.startMoving("right");
+                break;
+            case Keys.UP:
+                Gdx.app.log("InputHandler", "Keys.UP pressed");
+                ball.startMoving("up");
+                break;
+            case Keys.DOWN:
+                Gdx.app.log("InputHandler", "Keys.DOWN pressed");
+                ball.startMoving("down");
+                break;
+        }
+        return true;
     }
 
     @Override
     public boolean keyUp(int keycode) {
-        return false;
+        switch (keycode)
+        {
+            case Keys.LEFT:
+                Gdx.app.log("InputHandler", "Keys.LEFT released");
+                ball.stopMoving();
+                break;
+            case Keys.RIGHT:
+                Gdx.app.log("InputHandler", "Keys.RIGHT released");
+                ball.stopMoving();
+                break;
+            case Keys.UP:
+                Gdx.app.log("InputHandler", "Keys.UP released");
+                ball.stopMoving();
+                break;
+            case Keys.DOWN:
+                Gdx.app.log("InputHandler", "Keys.DOWN released");
+                ball.stopMoving();
+                break;
+        }
+        return true;
     }
 
     @Override

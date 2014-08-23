@@ -12,10 +12,12 @@ import com.martindilling.LD30.gameobjects.Ball;
  */
 public class GameWorld
 {
+    public int width = Gdx.graphics.getWidth();
+    public int height = Gdx.graphics.getHeight();
     private Ball ball;
 
-    public GameWorld(int midPointY) {
-        ball = new Ball(33, midPointY - 5, 17, 12);
+    public GameWorld() {
+        ball = new Ball(512, 320, 16, 16, 0);
     }
 
     public void update(float delta) {

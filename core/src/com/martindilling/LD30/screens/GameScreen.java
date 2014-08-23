@@ -17,18 +17,12 @@ public class GameScreen implements Screen
 {
     private GameWorld world;
     private GameRenderer renderer;
+    private float runTime = 0;
 
     public GameScreen() {
         Gdx.app.log("GameScreen", "Constructed");
 
-        float screenWidth = Gdx.graphics.getWidth();
-        float screenHeight = Gdx.graphics.getHeight();
-        float gameWidth = 136;
-        float gameHeight = screenHeight / (screenWidth / gameWidth);
-
-        int midPointY = (int) (gameHeight / 2);
-
-        world = new GameWorld(midPointY);
+        world = new GameWorld();
         renderer = new GameRenderer(world);
 
         Gdx.input.setInputProcessor(new InputHandler(world.getBall()));
@@ -37,9 +31,9 @@ public class GameScreen implements Screen
     @Override
     public void render(float delta) {
 //        Gdx.app.log("GameScreen FPS", (1/delta) + "");
-
+        runTime += delta;
         world.update(delta);
-        renderer.render();
+        renderer.render(runTime);
 
     }
 
