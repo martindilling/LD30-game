@@ -1,8 +1,10 @@
 package com.martindilling.LD30.gameworld;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -11,8 +13,12 @@ import com.badlogic.gdx.maps.tiled.TiledMapTileLayer.Cell;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.utils.TiledDrawable;
+import com.badlogic.gdx.utils.Array;
+import com.martindilling.LD30.LD30;
 import com.martindilling.LD30.gameobjects.Ball;
 import com.martindilling.LD30.helpers.AssetLoader;
+
+import java.util.Iterator;
 
 /**
  * Project: LD30
@@ -22,11 +28,12 @@ import com.martindilling.LD30.helpers.AssetLoader;
  */
 public class GameRenderer
 {
-    public TextureRegion bg;
-    public TextureRegion ballWhite, ballRed, ballGreen, ballBlue;
-    public TextureRegion wallDefault, wallRed, wallGreen, wallBlue;
-    public TextureRegion brickRed, brickGreen, brickBlue;
-    public TextureRegion brickDangerRed, brickDangerGreen, brickDangerBlue;
+    public TextureRegion bgDefault, bgInverted;
+    public TextureRegion ballWhite, ballRed, ballGreen, ballBlue, ballPurple;
+    public TextureRegion wallDefault, wallInverted;
+    public TextureRegion colorRed, colorGreen, colorBlue, colorPurple;
+    public TextureRegion brickRed, brickGreen, brickBlue, brickPurple;
+    public TextureRegion dangerRed, dangerGreen, dangerBlue, dangerPurple;
     public TextureRegion portalRed, portalGreen, portalBlue;
     private GameWorld world;
     private OrthographicCamera camera;
@@ -35,6 +42,10 @@ public class GameRenderer
     private TiledMapTileLayer tiledLayer;
     private ShapeRenderer shapeRenderer;
     private SpriteBatch batcher;
+    private BitmapFont font;
+    private Array<String> consoleLines;
+    private int consoleLineCount = 1;
+    private int consoleLineHeight = 17;
     private Ball ball;
     private float tileWidth;
     private float tileHeight;
@@ -49,12 +60,16 @@ public class GameRenderer
         camera = new OrthographicCamera();
         camera.setToOrtho(false, world.width, world.height);
 
-        tiledMap = new TmxMapLoader().load("levels/level1.tmx");
+        tiledMap = new TmxMapLoader().load("maps/map_01.tmx");
         tiledMapRenderer = new OrthogonalTiledMapRenderer(tiledMap);
         tiledLayer = (TiledMapTileLayer) tiledMap.getLayers().get("Tiles");
         tileWidth = tiledLayer.getTileWidth();
         tileHeight = tiledLayer.getTileHeight();
 
+        font = new BitmapFont();
+        font.setColor(Color.RED);
+
+        consoleLines = new Array<String>();
 
         batcher = new SpriteBatch();
         batcher.setProjectionMatrix(camera.combined);
@@ -66,29 +81,37 @@ public class GameRenderer
         initGameAssets();
     }
 
-    public void render(float runTime) {
+    private void consoleAdd(String txt) {
+        consoleLines.add(txt);
+    }
+
+    private void consoleWriteLines() {
+        batcher.begin();
+        for (Iterator<String> line = consoleLines.iterator(); line.hasNext();) {
+            font.draw(batcher, line.next(), 10, consoleLineCount*consoleLineHeight);
+            consoleLineCount++;
+        }
+        batcher.end();
+    }
+
+    public void render() {
         //        Gdx.app.log("GameRenderer", "render() called");
 
         // Clean screen
         Gdx.gl.glClearColor(50 / 255f, 50 / 255f, 50 / 255f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        boolean collisionX = false;
-        boolean collisionTop = false;
-        boolean collisionBottom = false;
+        safeBallIfOut();
 
-        ballTopLeft.x     = ball.getX() - ball.getWidth();
-        ballTopLeft.y     = ball.getY();
+        consoleLineCount = 1;
+        consoleLines.clear();
 
-        ballTopRight.x    = ball.getX() + ball.getWidth();
-        ballTopRight.y    = ball.getY();
-
-        ballBottomLeft.x  = ball.getX() - ball.getWidth();
-        ballBottomLeft.y  = ball.getY() + ball.getHeight();
-
-        ballBottomRight.x = ball.getX() + ball.getWidth();
-        ballBottomRight.y = ball.getY() + ball.getHeight();
-
+        boolean collisionUp = false;
+        boolean collisionDown = false;
+        boolean collisionLeft = false;
+        boolean collisionRight = false;
+        boolean hasSideCollision = false;
+        boolean hasAnyCollision = false;
 
 
         // Vertical Check
@@ -96,9 +119,23 @@ public class GameRenderer
         if (ball.getVelocity().y < 0) {
             verticalCell = getCollidingTileUp(ball.getOriginX(), ball.getOriginY(), ball.getWidth() / 2);
 
+            if (verticalCell != null && isSolid(verticalCell)) {
+                hasAnyCollision = true;
+                collisionDown = true;
+                if (ball.getMovingDirection().equals("horizontal")) {
+                    hasSideCollision = true;
+                }
+            }
         } else if (ball.getVelocity().y > 0) {
             verticalCell = getCollidingTileDown(ball.getOriginX(), ball.getOriginY(), ball.getWidth() / 2);
 
+            if (verticalCell != null && isSolid(verticalCell)) {
+                hasAnyCollision = true;
+                collisionUp = true;
+                if (ball.getMovingDirection().equals("horizontal")) {
+                    hasSideCollision = true;
+                }
+            }
         }
 
 
@@ -107,30 +144,84 @@ public class GameRenderer
         if (ball.getVelocity().x < 0) {
             horizontalCell = getCollidingTileLeft(ball.getOriginX(), ball.getOriginY(), ball.getWidth() / 2);
 
+            if (horizontalCell != null && isSolid(horizontalCell)) {
+                hasAnyCollision = true;
+                collisionLeft = true;
+                if (ball.getMovingDirection().equals("vertical")) {
+                    hasSideCollision = true;
+                }
+            }
         } else if (ball.getVelocity().x > 0) {
             horizontalCell = getCollidingTileRight(ball.getOriginX(), ball.getOriginY(), ball.getWidth() / 2);
 
+            if (horizontalCell != null && isSolid(horizontalCell)) {
+                hasAnyCollision = true;
+                collisionRight = true;
+                if (ball.getMovingDirection().equals("vertical")) {
+                    hasSideCollision = true;
+                }
+            }
         }
 
+
+        // Do wall bounce
+        if (hasSideCollision) {
+//            Gdx.app.log("Moving Direction", ball.getMovingDirection());
+            if (ball.getMovingDirection().equals("vertical") && isSolid(horizontalCell)) {
+                ball.setOldX();
+                if (collisionLeft) {
+//                    Gdx.app.log("Bounce", "On left");
+                    ball.wallBounce("right");
+                } else if (collisionRight) {
+                    ball.wallBounce("left");
+                }
+            } else if (ball.getMovingDirection().equals("horizontal") && isSolid(verticalCell)) {
+                ball.setOldY();
+                if (collisionUp) {
+//                    Gdx.app.log("Bounce", "On up");
+                    ball.wallBounce("down");
+                } else if (collisionDown) {
+//                    Gdx.app.log("Bounce", "On down");
+                    ball.wallBounce("up");
+                }
+            }
+        }
+
+        if (hasAnyCollision && !hasSideCollision) {
+            if (
+                    (ball.getMovingDirection().equals("vertical") && isSolid(verticalCell)) ||
+                    (ball.getMovingDirection().equals("horizontal") && isSolid(horizontalCell))
+            ) {
+//                Gdx.app.log("Collision", "Bounce");
+                ball.bounce();
+            }
+        }
 
         if (verticalCell != null) {
 //            Gdx.app.log("GameRenderer", "Collision Vertical!");
             if (isSolid(verticalCell)) {
-                ball.setOldY();
-                ball.setVelocityY(0);
 
                 if (shouldDestroy(verticalCell)) {
                     String color = brickColor(verticalCell);
                     if (ball.getColorStr().equals(color)) {
-                        Gdx.app.log("Action", "Destroy: color -> "+color);
+//                        Gdx.app.log("Action", "Destroy: color -> "+color);
                         verticalCell.setTile(null);
                     }
                 }
 
                 if (brickEffect(verticalCell).equals("color")) {
                     String color = brickColor(verticalCell);
-                    Gdx.app.log("Action", "Effect: color -> "+color);
+//                    Gdx.app.log("Action", "Effect: color -> "+color);
                     ball.setColor(color);
+                }
+
+                if (brickEffect(verticalCell).equals("die")) {
+                    String color = brickColor(verticalCell);
+//                    Gdx.app.log("Action", "Effect: color -> "+color);
+                    if (ball.getColorStr().equals(color)) {
+                        Gdx.app.log("Action", "Effect: die");
+                        GameOver();
+                    }
                 }
             }
         }
@@ -138,21 +229,28 @@ public class GameRenderer
         if (horizontalCell != null) {
 //            Gdx.app.log("GameRenderer", "Collision Horizontal!");
             if (isSolid(horizontalCell)) {
-                ball.setOldX();
-                ball.bounce();
 
                 if (shouldDestroy(horizontalCell)) {
                     String color = brickColor(horizontalCell);
                     if (ball.getColorStr().equals(color)) {
-                        Gdx.app.log("Action", "Destroy: color -> "+color);
+//                        Gdx.app.log("Action", "Destroy: color -> "+color);
                         horizontalCell.setTile(null);
                     }
                 }
 
                 if (brickEffect(horizontalCell).equals("color")) {
                     String color = brickColor(horizontalCell);
-                    Gdx.app.log("Action", "Effect: color -> "+color);
+//                    Gdx.app.log("Action", "Effect: color -> "+color);
                     ball.setColor(color);
+                }
+
+                if (brickEffect(horizontalCell).equals("die")) {
+                    String color = brickColor(horizontalCell);
+//                    Gdx.app.log("Action", "Effect: color -> "+color);
+                    if (ball.getColorStr().equals(color)) {
+                        Gdx.app.log("Action", "Effect: die");
+                        GameOver();
+                    }
                 }
             }
         }
@@ -172,11 +270,98 @@ public class GameRenderer
         camera.update();
         renderTiledMap();
 
+        consoleWriteLines();
 
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(1, 0, 0, 0.5f);
-        shapeRenderer.rect(ball.getX(), ball.getY(), 1, 1);
-        shapeRenderer.end();
+//        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+//        shapeRenderer.setColor(1, 0, 0, 0.5f);
+//        shapeRenderer.rect(ball.getX(), ball.getY(), 1, 1);
+//        shapeRenderer.end();
+    }
+
+    private void GameOver() {
+        tiledMap = new TmxMapLoader().load("maps/map_01.tmx");
+        tiledMapRenderer = new OrthogonalTiledMapRenderer(tiledMap);
+        tiledLayer = (TiledMapTileLayer) tiledMap.getLayers().get("Tiles");
+        tileWidth = tiledLayer.getTileWidth();
+        tileHeight = tiledLayer.getTileHeight();
+
+        ball.setPos(512-8, 320-8);
+        ball.setColor("white");
+
+        render();
+
+        LD30.state = LD30.GAME_READY;
+    }
+
+    private void safeBallIfOut() {
+        if (
+                (ball.getOriginX() < 0) ||
+                (ball.getOriginX() > world.width) ||
+                (ball.getOriginY() < 0) ||
+                (ball.getOriginY() > world.height)
+        ) {
+            ball.setPos(512-8, 320-8);
+        }
+    }
+
+    public void invert() {
+        TiledMapTileSet tileSet = tiledMap.getTileSets().getTileSet("tiles_32x32");
+
+        for (int x = 0; x < tiledLayer.getWidth(); x++) {
+            for (int y = 0; y < tiledLayer.getHeight(); y++) {
+                Cell cell = tiledLayer.getCell(x, y);
+                if (cell == null) {
+                    continue;
+                }
+                if (cell.getTile() == null) {
+                    continue;
+                }
+
+                inverseBricks(tileSet, cell);
+            }
+        }
+
+        world.invert();
+        ball.changeDirection();
+
+    }
+
+    private void inverseBricks(TiledMapTileSet tileSet, Cell cell) {
+        // Red
+        if (cell.getTile().getId() == 1) {
+            cell.setTile(tileSet.getTile(9));
+            return;
+        }
+        if (cell.getTile().getId() == 9) {
+            cell.setTile(tileSet.getTile(1));
+        }
+
+        // Green
+        if (cell.getTile().getId() == 2) {
+            cell.setTile(tileSet.getTile(10));
+            return;
+        }
+        if (cell.getTile().getId() == 10) {
+            cell.setTile(tileSet.getTile(2));
+        }
+
+        // Blue
+        if (cell.getTile().getId() == 3) {
+            cell.setTile(tileSet.getTile(11));
+            return;
+        }
+        if (cell.getTile().getId() == 11) {
+            cell.setTile(tileSet.getTile(3));
+        }
+
+        // Purple
+        if (cell.getTile().getId() == 4) {
+            cell.setTile(tileSet.getTile(12));
+            return;
+        }
+        if (cell.getTile().getId() == 12) {
+            cell.setTile(tileSet.getTile(4));
+        }
     }
 
 
@@ -226,10 +411,10 @@ public class GameRenderer
 
 
     private Cell getCollidingTileLeft(float centerX, float centerY, float halfLength) {
-        int cellX = posXtoCellX(centerX - (halfLength * 3));
-        int cellY1 = posYtoCellY(centerY - halfLength);
+        int cellX = posXtoCellX(centerX - halfLength-1);
+        int cellY1 = posYtoCellY(centerY - halfLength+1);
         int cellYc = posYtoCellY(centerY);
-        int cellY3 = posYtoCellY(centerY + halfLength);
+        int cellY3 = posYtoCellY(centerY + halfLength-1);
         int cellMaxY;
         int cellMinY;
 
@@ -258,10 +443,10 @@ public class GameRenderer
     }
 
     private Cell getCollidingTileRight(float centerX, float centerY, float halfLength) {
-        int cellX = posXtoCellX(centerX + halfLength);
-        int cellY1 = posYtoCellY(centerY - halfLength);
+        int cellX = posXtoCellX(centerX + halfLength+1);
+        int cellY1 = posYtoCellY(centerY - halfLength+1);
         int cellYc = posYtoCellY(centerY);
-        int cellY3 = posYtoCellY(centerY + halfLength);
+        int cellY3 = posYtoCellY(centerY + halfLength-1);
         int cellMaxY;
         int cellMinY;
 
@@ -290,10 +475,10 @@ public class GameRenderer
     }
 
     private Cell getCollidingTileUp(float centerX, float centerY, float halfLength) {
-        int cellY = posYtoCellY(centerY - halfLength);
-        int cellX1 = posXtoCellX(centerX - halfLength);
+        int cellY = posYtoCellY(centerY - halfLength-1);
+        int cellX1 = posXtoCellX(centerX - halfLength+1);
         int cellXc = posXtoCellX(centerX);
-        int cellX3 = posXtoCellX(centerX + halfLength);
+        int cellX3 = posXtoCellX(centerX + halfLength-1);
         int cellMinX;
         int cellMaxX;
 
@@ -322,10 +507,10 @@ public class GameRenderer
     }
 
     private Cell getCollidingTileDown(float centerX, float centerY, float halfLength) {
-        int cellY = posYtoCellY(centerY + halfLength);
-        int cellX1 = posXtoCellX(centerX - halfLength);
+        int cellY = posYtoCellY(centerY + halfLength+1);
+        int cellX1 = posXtoCellX(centerX - halfLength+1);
         int cellXc = posXtoCellX(centerX);
-        int cellX3 = posXtoCellX(centerX + halfLength);
+        int cellX3 = posXtoCellX(centerX + halfLength-1);
         int cellMinX;
         int cellMaxX;
 
@@ -419,9 +604,13 @@ public class GameRenderer
     }
 
     private void drawBackground() {
-        // Draw Background
-        TiledDrawable bgTile = new TiledDrawable(bg);
-        bgTile.draw(batcher, 0, 0, 1024, 640);
+        if (world.isInverted()) {
+            TiledDrawable bgTile = new TiledDrawable(bgDefault);
+            bgTile.draw(batcher, 0, 0, 1024, 640);
+        } else {
+            TiledDrawable bgTile = new TiledDrawable(bgInverted);
+            bgTile.draw(batcher, 0, 0, 1024, 640);
+        }
     }
 
     private void renderTiledMap() {
@@ -434,21 +623,33 @@ public class GameRenderer
     }
 
     private void initGameAssets() {
-        bg = AssetLoader.bg;
+        bgDefault = AssetLoader.bgDefault;
+        bgInverted = AssetLoader.bgInverted;
+
+        wallDefault = AssetLoader.wallDefault;
+        wallInverted = AssetLoader.wallInverted;
+
         ballWhite = AssetLoader.ballWhite;
         ballRed = AssetLoader.ballRed;
         ballGreen = AssetLoader.ballGreen;
         ballBlue = AssetLoader.ballBlue;
-        wallDefault = AssetLoader.wallDefault;
-        wallRed = AssetLoader.wallRed;
-        wallGreen = AssetLoader.wallGreen;
-        wallBlue = AssetLoader.wallBlue;
+        ballPurple = AssetLoader.ballPurple;
+
+        colorRed = AssetLoader.colorRed;
+        colorGreen = AssetLoader.colorGreen;
+        colorBlue = AssetLoader.colorBlue;
+        colorPurple = AssetLoader.colorPurple;
+
         brickRed = AssetLoader.brickRed;
         brickGreen = AssetLoader.brickGreen;
         brickBlue = AssetLoader.brickBlue;
-        brickDangerRed = AssetLoader.brickDangerRed;
-        brickDangerGreen = AssetLoader.brickDangerGreen;
-        brickDangerBlue = AssetLoader.brickDangerBlue;
+        brickPurple = AssetLoader.brickPurple;
+
+        dangerRed = AssetLoader.dangerRed;
+        dangerGreen = AssetLoader.dangerGreen;
+        dangerBlue = AssetLoader.dangerBlue;
+        dangerPurple = AssetLoader.dangerPurple;
+
         portalRed = AssetLoader.portalRed;
         portalGreen = AssetLoader.portalGreen;
         portalBlue = AssetLoader.portalBlue;

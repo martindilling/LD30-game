@@ -15,9 +15,10 @@ public class GameWorld
     public int width = Gdx.graphics.getWidth();
     public int height = Gdx.graphics.getHeight();
     private Ball ball;
+    private boolean inverted = false;
 
     public GameWorld() {
-        ball = new Ball(512, 320, 16, 16, 0);
+        ball = new Ball(512-8, 320-8, 16, 16, 0);
     }
 
     public void update(float delta) {
@@ -27,5 +28,13 @@ public class GameWorld
 
     public Ball getBall() {
         return ball;
+    }
+
+    public boolean isInverted() {
+        return inverted;
+    }
+
+    public void invert() {
+        inverted = !inverted;
     }
 }

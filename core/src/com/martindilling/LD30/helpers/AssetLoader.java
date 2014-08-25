@@ -14,34 +14,44 @@ import static com.badlogic.gdx.graphics.Texture.TextureFilter;
 public class AssetLoader
 {
     public static Texture texture16;
-    public static TextureRegion bg;
-    public static TextureRegion ballWhite, ballRed, ballGreen, ballBlue;
-    public static TextureRegion wallDefault, wallRed, wallGreen, wallBlue;
-    public static TextureRegion brickRed, brickGreen, brickBlue;
-    public static TextureRegion brickDangerRed, brickDangerGreen, brickDangerBlue;
+    public static Texture texture32;
+    public static TextureRegion bgDefault, bgInverted;
+    public static TextureRegion ballWhite, ballRed, ballGreen, ballBlue, ballPurple;
+    public static TextureRegion wallDefault, wallInverted;
+    public static TextureRegion colorRed, colorGreen, colorBlue, colorPurple;
+    public static TextureRegion brickRed, brickGreen, brickBlue, brickPurple;
+    public static TextureRegion dangerRed, dangerGreen, dangerBlue, dangerPurple;
     public static TextureRegion portalRed, portalGreen, portalBlue;
 
     public static void load() {
         texture16 = new Texture("tiles_16x16.png");
         texture16.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
 
-        bg = new TextureRegion(texture16, 0, 16, 16, 16);
-//        bg.flip(false, true);
-
         ballWhite = new TextureRegion(texture16, 0, 0, 16, 16);
-//        ballWhite.flip(false, true);
-
         ballRed = new TextureRegion(texture16, 16, 0, 16, 16);
-//        ballWhite.flip(false, true);
-
         ballGreen = new TextureRegion(texture16, 32, 0, 16, 16);
-//        ballWhite.flip(false, true);
-
         ballBlue = new TextureRegion(texture16, 48, 0, 16, 16);
-//        ballWhite.flip(false, true);
+        ballPurple = new TextureRegion(texture16, 64, 0, 16, 16);
 
-//        wallDefault = new TextureRegion(texture16, 0, 16, 32, 16);
-//        wallDefault.flip(false, true);
+
+        texture32 = new Texture("tiles_32x32.png");
+        texture32.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
+
+        bgDefault = new TextureRegion(texture32, 64, 96, 32, 32);
+        bgInverted = new TextureRegion(texture32, 96, 96, 32, 32);
+
+        wallDefault = new TextureRegion(texture32, 0, 96, 32, 32);
+        wallInverted = new TextureRegion(texture32, 32, 96, 32, 32);
+
+        brickRed = new TextureRegion(texture32, 0, 0, 32, 32);
+        brickGreen = new TextureRegion(texture32, 32, 0, 32, 32);
+        brickBlue = new TextureRegion(texture32, 64, 0, 32, 32);
+        brickPurple = new TextureRegion(texture32, 96, 0, 32, 32);
+
+        colorRed = new TextureRegion(texture32, 0, 32, 32, 32);
+        colorGreen = new TextureRegion(texture32, 32, 32, 32, 32);
+        colorBlue = new TextureRegion(texture32, 64, 32, 32, 32);
+        colorPurple = new TextureRegion(texture32, 96, 32, 32, 32);
 
 
     }

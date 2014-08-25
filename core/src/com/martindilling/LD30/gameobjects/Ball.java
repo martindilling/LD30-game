@@ -1,8 +1,7 @@
 package com.martindilling.LD30.gameobjects;
 
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.martindilling.LD30.helpers.AssetLoader;
 
@@ -18,7 +17,7 @@ public class Ball
     private Vector2 oldPosition;
     private Vector2 velocity;
     private Vector2 acceleration;
-    private int maxVelocity = 200;
+    private int maxVelocity = 120;
     private int startAcceleration = 100;
     private String orientation = "horizontal";
     private String direction = "left";
@@ -33,9 +32,13 @@ public class Ball
     private boolean movingLeft = false;
     private boolean movingRight = false;
 
-    private Rectangle boundingBox;
-
     private boolean isFalling = false;
+    private boolean isWallBouncing = false;
+    private float bounceStartPos = 0;
+    private float bounceMoveLength = 8;
+    private boolean isMoving = false;
+    private String wallBounceDir;
+    private boolean movingPaused = false;
 
     public Ball(float x, float y, int height, int width, int angle) {
         this.height = height;
@@ -44,7 +47,6 @@ public class Ball
         this.oldPosition = new Vector2(x, y);
         this.velocity = new Vector2(0, 0);
         this.acceleration = new Vector2(0, 0);
-        boundingBox = new Rectangle();
 
         fall(direction);
     }
@@ -59,22 +61,64 @@ public class Ball
 
         position.add(velocity.cpy().scl(delta));
 
+        checkWallBounce();
 
-        if (movingUp) {
-            move("up");
-        } else if (movingDown) {
-            move("down");
-        } else if (movingLeft) {
-            move("left");
-        } else if (movingRight) {
-            move("right");
-        } else {
+        if (!movingUp && !movingDown && !movingLeft && !movingRight) {
+            isMoving = false;
+        }
+
+        if (isMoving) {
+            if (movingUp) {
+                move("up");
+            } else if (movingDown) {
+                move("down");
+            } else if (movingLeft) {
+                move("left");
+            } else if (movingRight) {
+                move("right");
+            }
+        } else if (!movingPaused && !isWallBouncing) {
             stop();
         }
 
-
-        boundingBox.set(position.x + 4, position.y + 4, 8, 8);
     }
+
+    public void changeDirection() {
+        isFalling = false;
+        if (direction.equals("up")) {
+            fall("right");
+        } else if (direction.equals("right")) {
+            fall("down");
+        } else if (direction.equals("down")) {
+            fall("left");
+        } else if (direction.equals("left")) {
+            fall("up");
+        }
+    }
+
+    public String getMovingDirection() {
+        if (direction.equals("up") || direction.equals("down")) {
+            return "vertical";
+        } else if (direction.equals("right") || direction.equals("left")) {
+            return "horizontal";
+        }
+        return "";
+    }
+
+    public String getDirection() {
+//        Gdx.app.log("Ball", "get direction: "+direction);
+        if (direction.equals("up")) {
+            return "up";
+        } else if (direction.equals("down")) {
+            return "down";
+        } else if (direction.equals("left")) {
+            return "left";
+        } else if (direction.equals("right")) {
+            return "right";
+        }
+        return "";
+    }
+
 
     public void bounce() {
         isFalling = false;
@@ -87,6 +131,95 @@ public class Ball
         } else if (direction.equals("right")) {
             fall("left");
         }
+    }
+
+    public void wallBounce(String dir) {
+        Gdx.app.log("WallBounce", dir);
+        isWallBouncing = true;
+        isMoving = false;
+        movingPaused = true;
+        wallBounceDir = dir;
+        if (dir.equals("up")) {
+            bounceStartPos = position.y;
+
+        } else if (dir.equals("down")) {
+            bounceStartPos = position.y;
+
+        } else if (dir.equals("left")) {
+            bounceStartPos = position.x;
+
+        } else if (dir.equals("right")) {
+            bounceStartPos = position.x;
+
+        }
+
+//        Gdx.app.log("WallBounce", "StartPos: "+bounceStartPos);
+
+        bounceFromWall(dir);
+    }
+
+    public void checkWallBounce() {
+        if (isWallBouncing) {
+//            Gdx.app.log("bounceStart", bounceStartPos + "");
+//            Gdx.app.log("bouncePosY", position.y + "");
+//            Gdx.app.log("bounceDiffY", Math.abs(bounceStartPos-position.y) + "");
+//            Gdx.app.log("bounceDiffX", Math.abs(bounceStartPos-position.x) + "");
+//            Gdx.app.log("---", "---");
+//            Gdx.app.log("WallBounce", "Checking...");
+            if (wallBounceDir.equals("up")) {
+//                Gdx.app.log("WallBounce", "Check Up");
+                if (Math.abs(bounceStartPos-position.y) > bounceMoveLength) {
+                    Gdx.app.log("WallBounce", "Done bouncing: up");
+                    isWallBouncing = false;
+                    movingPaused = false;
+                    isMoving = true;
+                }
+
+            } else if (wallBounceDir.equals("down")) {
+//                Gdx.app.log("WallBounce", "Check Down");
+                if (Math.abs(bounceStartPos-position.y) > bounceMoveLength) {
+                    Gdx.app.log("WallBounce", "Done bouncing: down");
+                    isWallBouncing = false;
+                    movingPaused = false;
+                    isMoving = true;
+                }
+
+            } else if (wallBounceDir.equals("left")) {
+//                Gdx.app.log("WallBounce", "Check Left");
+                if (Math.abs(bounceStartPos-position.x) > bounceMoveLength) {
+                    Gdx.app.log("WallBounce", "Done bouncing: left");
+                    isWallBouncing = false;
+                    movingPaused = false;
+                    isMoving = true;
+                }
+
+            } else if (wallBounceDir.equals("right")) {
+//                Gdx.app.log("WallBounce", "Check Right");
+                if (Math.abs(bounceStartPos-position.x) > bounceMoveLength) {
+                    Gdx.app.log("WallBounce", "Done bouncing: right");
+                    isWallBouncing = false;
+                    movingPaused = false;
+                    isMoving = true;
+                }
+
+            }
+        }
+    }
+
+    public void bounceFromWall(String dir) {
+        if (dir.equalsIgnoreCase("up")) {
+            velocity.y = 60;
+        } else if (dir.equalsIgnoreCase("down")) {
+            velocity.y = -60;
+        } else if (dir.equalsIgnoreCase("left")) {
+            velocity.x = -60;
+        } else if (dir.equalsIgnoreCase("right")) {
+            velocity.x = 60;
+        }
+    }
+
+    public void setPos(int x, int y) {
+        position.set(x, y);
     }
 
     private void constrainVelocity() {
@@ -104,13 +237,6 @@ public class Ball
         }
     }
 
-    public void onClick() {
-        bounce();
-//        velocity.y = -140;
-//        velocity.x = 20;
-
-    }
-
     public void setColor(String colorstr) {
         if (colorstr.equals("white")) {
             color = AssetLoader.ballWhite;
@@ -120,6 +246,8 @@ public class Ball
             color = AssetLoader.ballGreen;
         } else if (colorstr.equals("blue")) {
             color = AssetLoader.ballBlue;
+        } else if (colorstr.equals("purple")) {
+            color = AssetLoader.ballPurple;
         }
     }
 
@@ -130,6 +258,8 @@ public class Ball
             return "green";
         } else if (color == AssetLoader.ballBlue) {
             return "blue";
+        } else if (color == AssetLoader.ballPurple) {
+            return "purple";
         }
         return "white";
     }
@@ -140,18 +270,20 @@ public class Ball
 
     public void fall(String dir) {
         if (!isFalling) {
+//            velocity.x = 0;
+//            velocity.y = 0;
             if (dir.equalsIgnoreCase("up")) {
-                velocity.y = 80;
-                acceleration.set(0, -startAcceleration);
+                velocity.y = -maxVelocity;
+//                acceleration.set(0, -startAcceleration);
             } else if (dir.equalsIgnoreCase("down")) {
-                velocity.y = -80;
-                acceleration.set(0, startAcceleration);
+                velocity.y = maxVelocity;
+//                acceleration.set(0, startAcceleration);
             } else if (dir.equalsIgnoreCase("left")) {
-                velocity.x = -80;
-                acceleration.set(-startAcceleration, 0);
+                velocity.x = -maxVelocity;
+//                acceleration.set(-startAcceleration, 0);
             } else if (dir.equalsIgnoreCase("right")) {
-                velocity.x = 80;
-                acceleration.set(startAcceleration, 0);
+                velocity.x = maxVelocity;
+//                acceleration.set(startAcceleration, 0);
             }
 
             direction = dir;
@@ -160,6 +292,7 @@ public class Ball
     }
 
     public void startMoving(String dir) {
+        isMoving = true;
         if (!movingUp && dir.equals("up")) {
             movingUp = true;
             movingDown = false;
@@ -193,20 +326,20 @@ public class Ball
     public void move(String dir) {
         if (direction.equals("left") || direction.equals("right")) {
             if (dir.equalsIgnoreCase("up")) {
-                velocity.y = 100;
-                //                acceleration.set(0, -startAcceleration);
+                velocity.y = maxVelocity;
+//                acceleration.set(0, -startAcceleration);
             } else if (dir.equalsIgnoreCase("down")) {
-                velocity.y = -100;
-                //                acceleration.set(0, startAcceleration);
+                velocity.y = -maxVelocity;
+//                acceleration.set(0, startAcceleration);
             }
         }
 
         if (direction.equals("up") || direction.equals("down")) {
             if (dir.equalsIgnoreCase("left")) {
-                velocity.x = -100;
+                velocity.x = -maxVelocity;
 //                acceleration.set(-startAcceleration, 0);
             } else if (dir.equalsIgnoreCase("right")) {
-                velocity.x = 100;
+                velocity.x = maxVelocity;
 //                acceleration.set(startAcceleration, 0);
             }
         }
@@ -264,9 +397,5 @@ public class Ball
 
     public int getHeight() {
         return height;
-    }
-
-    public Rectangle getBoundingBox() {
-        return boundingBox;
     }
 }
