@@ -10,7 +10,6 @@ public class ExitButton extends AbstractButton
         super(game);
         textureDefault = new Texture("buttons/quit_normal.png");
         textureHover   = new Texture("buttons/quit_hover.png");
-        texturePressed = new Texture("buttons/quit_hover.png");
 
         Init();
     }

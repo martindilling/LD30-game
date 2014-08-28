@@ -12,10 +12,8 @@ public abstract class AbstractButton extends Actor
     protected LD30 game;
     public boolean started = false;
     public boolean hover = false;
-    public boolean pressed = false;
     protected Texture textureDefault;
     protected Texture textureHover;
-    protected Texture texturePressed;
     private float actorX = 0;
     private float actorY = 0;
 
@@ -30,13 +28,11 @@ public abstract class AbstractButton extends Actor
                 {
                     @Override
                     public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                        pressed = true;
                         return true;
                     }
 
                     @Override
                     public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-                        pressed = false;
                         started = true;
                     }
 
@@ -61,9 +57,7 @@ public abstract class AbstractButton extends Actor
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
-        if (pressed) {
-            batch.draw(texturePressed, actorX, actorY);
-        } else if (hover) {
+        if (hover) {
             batch.draw(textureHover, actorX, actorY);
         } else {
             batch.draw(textureDefault, actorX, actorY);

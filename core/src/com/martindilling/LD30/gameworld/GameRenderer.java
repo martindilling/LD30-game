@@ -1,7 +1,6 @@
 package com.martindilling.LD30.gameworld;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -15,8 +14,10 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.utils.TiledDrawable;
 import com.badlogic.gdx.utils.Array;
 import com.martindilling.LD30.LD30;
+import com.martindilling.LD30.assets.Assets;
 import com.martindilling.LD30.gameobjects.Ball;
-import com.martindilling.LD30.helpers.AssetLoader;
+import com.martindilling.LD30.loaders.Screens;
+import com.martindilling.LD30.screens.GameScreen;
 
 import java.util.Iterator;
 
@@ -34,18 +35,14 @@ public class GameRenderer
     public TextureRegion colorRed, colorGreen, colorBlue, colorPurple;
     public TextureRegion brickRed, brickGreen, brickBlue, brickPurple;
     public TextureRegion dangerRed, dangerGreen, dangerBlue, dangerPurple;
-    public TextureRegion portalRed, portalGreen, portalBlue;
-    private GameWorld world;
+    private GameScreen screen;
     private OrthographicCamera camera;
     private TiledMap tiledMap;
     private TiledMapRenderer tiledMapRenderer;
     private TiledMapTileLayer tiledLayer;
-    private ShapeRenderer shapeRenderer;
-    private SpriteBatch batcher;
+    private ShapeRenderer shape;
+    private SpriteBatch batch;
     private BitmapFont font;
-    private Array<String> consoleLines;
-    private int consoleLineCount = 1;
-    private int consoleLineHeight = 17;
     private Ball ball;
     private float tileWidth;
     private float tileHeight;
@@ -53,45 +50,79 @@ public class GameRenderer
     private Vector2 ballTopRight = new Vector2(0, 0);
     private Vector2 ballBottomLeft = new Vector2(0, 0);
     private Vector2 ballBottomRight = new Vector2(0, 0);
+    private String activeMap;
+    private int activeLevel;
+    private int bricksLeft;
 
-    public GameRenderer(GameWorld world) {
-        this.world = world;
+    public GameRenderer(GameScreen screen) {
+        this.screen = screen;
 
-        camera = new OrthographicCamera();
-        camera.setToOrtho(false, world.width, world.height);
-
-        tiledMap = new TmxMapLoader().load("maps/map_01.tmx");
-        tiledMapRenderer = new OrthogonalTiledMapRenderer(tiledMap);
-        tiledLayer = (TiledMapTileLayer) tiledMap.getLayers().get("Tiles");
-        tileWidth = tiledLayer.getTileWidth();
-        tileHeight = tiledLayer.getTileHeight();
-
-        font = new BitmapFont();
-        font.setColor(Color.RED);
-
-        consoleLines = new Array<String>();
-
-        batcher = new SpriteBatch();
-        batcher.setProjectionMatrix(camera.combined);
-
-        shapeRenderer = new ShapeRenderer();
-        shapeRenderer.setProjectionMatrix(camera.combined);
+        camera = screen.camera;
+        camera.setToOrtho(false, screen.world.width, screen.world.height);
+        font = screen.font;
+        batch = screen.batch;
+        shape = screen.shape;
 
         initGameObjects();
         initGameAssets();
+
+        loadMap(1);
     }
 
-    private void consoleAdd(String txt) {
-        consoleLines.add(txt);
-    }
+    public void loadMap(int level) {
+        activeLevel = level;
+        switch (activeLevel) {
+            case 1:
+                activeMap = "maps/map_01.tmx";
+                break;
+            case 2:
+                activeMap = "maps/map_02.tmx";
+                break;
+            case 3:
+                activeMap = "maps/map_03.tmx";
+                break;
+            case 4:
+                activeMap = "maps/map_04.tmx";
+                break;
+            case 5:
+                activeMap = "maps/map_05.tmx";
+                break;
+            case 6:
+                activeMap = "maps/map_06.tmx";
+                break;
 
-    private void consoleWriteLines() {
-        batcher.begin();
-        for (Iterator<String> line = consoleLines.iterator(); line.hasNext();) {
-            font.draw(batcher, line.next(), 10, consoleLineCount*consoleLineHeight);
-            consoleLineCount++;
+            default:
+                activeMap = "maps/map_01.tmx";
         }
-        batcher.end();
+
+        resetMap();
+    }
+
+    public void CalcBricksLeft() {
+        bricksLeft = 0;
+
+        for (int x = 0; x < tiledLayer.getWidth(); x++) {
+            for (int y = 0; y < tiledLayer.getHeight(); y++) {
+                Cell cell = tiledLayer.getCell(x, y);
+                if (cell == null) {
+                    continue;
+                }
+                if (cell.getTile() == null) {
+                    continue;
+                }
+
+                if (shouldDestroy(cell) || brickEffect(cell).equals("die")) {
+                    bricksLeft++;
+                }
+            }
+        }
+    }
+
+    public boolean areAllBricksDestroyed() {
+        if (bricksLeft < 1) {
+            return true;
+        }
+        return false;
     }
 
     public void render() {
@@ -103,8 +134,9 @@ public class GameRenderer
 
         safeBallIfOut();
 
-        consoleLineCount = 1;
-        consoleLines.clear();
+        if (areAllBricksDestroyed()) {
+            LevelCleared();
+        }
 
         boolean collisionUp = false;
         boolean collisionDown = false;
@@ -205,13 +237,17 @@ public class GameRenderer
                     String color = brickColor(verticalCell);
                     if (ball.getColorStr().equals(color)) {
 //                        Gdx.app.log("Action", "Destroy: color -> "+color);
+                        screen.PlayDestroyBrickSound();
                         verticalCell.setTile(null);
+                        bricksLeft--;
+                        LD30.log("BlocksLeft", bricksLeft+"");
                     }
                 }
 
                 if (brickEffect(verticalCell).equals("color")) {
                     String color = brickColor(verticalCell);
 //                    Gdx.app.log("Action", "Effect: color -> "+color);
+                    screen.PlayDestroyBrickSound();
                     ball.setColor(color);
                 }
 
@@ -219,7 +255,7 @@ public class GameRenderer
                     String color = brickColor(verticalCell);
 //                    Gdx.app.log("Action", "Effect: color -> "+color);
                     if (ball.getColorStr().equals(color)) {
-                        Gdx.app.log("Action", "Effect: die");
+//                        Gdx.app.log("Action", "Effect: die");
                         GameOver();
                     }
                 }
@@ -234,13 +270,17 @@ public class GameRenderer
                     String color = brickColor(horizontalCell);
                     if (ball.getColorStr().equals(color)) {
 //                        Gdx.app.log("Action", "Destroy: color -> "+color);
+                        screen.PlayDestroyBrickSound();
                         horizontalCell.setTile(null);
+                        bricksLeft--;
+                        LD30.log("BlocksLeft", bricksLeft + "");
                     }
                 }
 
                 if (brickEffect(horizontalCell).equals("color")) {
                     String color = brickColor(horizontalCell);
 //                    Gdx.app.log("Action", "Effect: color -> "+color);
+                    screen.PlayDestroyBrickSound();
                     ball.setColor(color);
                 }
 
@@ -248,7 +288,7 @@ public class GameRenderer
                     String color = brickColor(horizontalCell);
 //                    Gdx.app.log("Action", "Effect: color -> "+color);
                     if (ball.getColorStr().equals(color)) {
-                        Gdx.app.log("Action", "Effect: die");
+//                        Gdx.app.log("Action", "Effect: die");
                         GameOver();
                     }
                 }
@@ -259,34 +299,52 @@ public class GameRenderer
 
 
         // Draw textures
-        batcher.begin();
-        batcher.disableBlending(); // Disable transparency
+        batch.begin();
         drawBackground();
-        drawWalls();
-        batcher.enableBlending(); // Enable transparency
-        drawBall();
-        batcher.end();
+        batch.end();
+
+
+        screen.stage.addActor(ball);
 
         camera.update();
         renderTiledMap();
 
-        consoleWriteLines();
+    }
 
-//        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-//        shapeRenderer.setColor(1, 0, 0, 0.5f);
-//        shapeRenderer.rect(ball.getX(), ball.getY(), 1, 1);
-//        shapeRenderer.end();
+    private void LevelCleared() {
+//        LD30.log("YAAAY", "You completed the level :P");
+        screen.game.levelDone(activeLevel);
+        screen.game.save();
+        LD30.state = LD30.GAME_COMPLETE;
+        screen.PlayClearedSound();
+        screen.game.setScreen(Screens.cleared);
     }
 
     private void GameOver() {
-        tiledMap = new TmxMapLoader().load("maps/map_01.tmx");
+        LD30.state = LD30.GAME_OVER;
+        screen.PlayGameOverSound();
+        screen.game.setScreen(Screens.gameOver);
+    }
+
+    public void resetMap() {
+        if (tiledMap != null) {
+            tiledMap.dispose();
+        }
+        if (screen.world.isInverted()) {
+            screen.world.invert();
+        }
+
+        tiledMap = new TmxMapLoader().load(activeMap);
         tiledMapRenderer = new OrthogonalTiledMapRenderer(tiledMap);
         tiledLayer = (TiledMapTileLayer) tiledMap.getLayers().get("Tiles");
         tileWidth = tiledLayer.getTileWidth();
         tileHeight = tiledLayer.getTileHeight();
 
+        CalcBricksLeft();
+
         ball.setPos(512-8, 320-8);
-        ball.setColor("white");
+        ball.reset();
+
 
         render();
 
@@ -296,9 +354,9 @@ public class GameRenderer
     private void safeBallIfOut() {
         if (
                 (ball.getOriginX() < 0) ||
-                (ball.getOriginX() > world.width) ||
+                (ball.getOriginX() > screen.world.width) ||
                 (ball.getOriginY() < 0) ||
-                (ball.getOriginY() > world.height)
+                (ball.getOriginY() > screen.world.height)
         ) {
             ball.setPos(512-8, 320-8);
         }
@@ -321,7 +379,7 @@ public class GameRenderer
             }
         }
 
-        world.invert();
+        screen.world.invert();
         ball.changeDirection();
 
     }
@@ -567,11 +625,11 @@ public class GameRenderer
     }
 
     private void drawBall() {
-        batcher.draw(
-                ball.getColor(),
-                ball.getX(), ball.getY(),
-                ball.getWidth(), ball.getHeight()
-        );
+//        batch.draw(
+//                ball.getBallColor(),
+//                ball.getX(), ball.getY(),
+//                ball.getWidth(), ball.getHeight()
+//        );
     }
 
     private void drawWalls() {
@@ -579,37 +637,37 @@ public class GameRenderer
         //        TiledDrawable wallTile = new TiledDrawable(wallDefault);
         //        // Top
         //        wallTile.draw(
-        //                batcher,
+        //                batch,
         //            /* X, Y */ 0, 0,
-        //            /* w, h */ world.width, wallTile.getRegion().getRegionHeight()
+        //            /* w, h */ screen.width, wallTile.getRegion().getRegionHeight()
         //        );
         //        // Bottom
         //        wallTile.draw(
-        //                batcher,
-        //            /* X, Y */ 0, world.height - wallTile.getRegion().getRegionHeight(),
-        //            /* w, h */ world.width, wallTile.getRegion().getRegionHeight()
+        //                batch,
+        //            /* X, Y */ 0, screen.height - wallTile.getRegion().getRegionHeight(),
+        //            /* w, h */ screen.width, wallTile.getRegion().getRegionHeight()
         //        );
         //        // Left
         //        wallTile.draw(
-        //                batcher,
+        //                batch,
         //            /* X, Y */ 0, 0,
-        //            /* w, h */ wallTile.getRegion().getRegionWidth(), world.height
+        //            /* w, h */ wallTile.getRegion().getRegionWidth(), screen.height
         //        );
         //        // Right
         //        wallTile.draw(
-        //                batcher,
-        //            /* X, Y */ world.width - wallTile.getRegion().getRegionWidth(), 0,
-        //            /* w, h */ wallTile.getRegion().getRegionWidth(), world.height
+        //                batch,
+        //            /* X, Y */ screen.width - wallTile.getRegion().getRegionWidth(), 0,
+        //            /* w, h */ wallTile.getRegion().getRegionWidth(), screen.height
         //        );
     }
 
     private void drawBackground() {
-        if (world.isInverted()) {
+        if (!screen.world.isInverted()) {
             TiledDrawable bgTile = new TiledDrawable(bgDefault);
-            bgTile.draw(batcher, 0, 0, 1024, 640);
+            bgTile.draw(batch, 0, 0, 1024, 640);
         } else {
             TiledDrawable bgTile = new TiledDrawable(bgInverted);
-            bgTile.draw(batcher, 0, 0, 1024, 640);
+            bgTile.draw(batch, 0, 0, 1024, 640);
         }
     }
 
@@ -619,39 +677,35 @@ public class GameRenderer
     }
 
     private void initGameObjects() {
-        ball = world.getBall();
+        ball = screen.world.getBall();
     }
 
     private void initGameAssets() {
-        bgDefault = AssetLoader.bgDefault;
-        bgInverted = AssetLoader.bgInverted;
+        bgDefault = Assets.instance.images.bgDefault;
+        bgInverted = Assets.instance.images.bgInverted;
 
-        wallDefault = AssetLoader.wallDefault;
-        wallInverted = AssetLoader.wallInverted;
+        wallDefault = Assets.instance.images.wallDefault;
+        wallInverted = Assets.instance.images.wallInverted;
 
-        ballWhite = AssetLoader.ballWhite;
-        ballRed = AssetLoader.ballRed;
-        ballGreen = AssetLoader.ballGreen;
-        ballBlue = AssetLoader.ballBlue;
-        ballPurple = AssetLoader.ballPurple;
+        ballWhite = Assets.instance.images.ballWhite;
+        ballRed = Assets.instance.images.ballRed;
+        ballGreen = Assets.instance.images.ballGreen;
+        ballBlue = Assets.instance.images.ballBlue;
+        ballPurple = Assets.instance.images.ballPurple;
 
-        colorRed = AssetLoader.colorRed;
-        colorGreen = AssetLoader.colorGreen;
-        colorBlue = AssetLoader.colorBlue;
-        colorPurple = AssetLoader.colorPurple;
+        colorRed = Assets.instance.images.colorRed;
+        colorGreen = Assets.instance.images.colorGreen;
+        colorBlue = Assets.instance.images.colorBlue;
+        colorPurple = Assets.instance.images.colorPurple;
 
-        brickRed = AssetLoader.brickRed;
-        brickGreen = AssetLoader.brickGreen;
-        brickBlue = AssetLoader.brickBlue;
-        brickPurple = AssetLoader.brickPurple;
+        brickRed = Assets.instance.images.brickRed;
+        brickGreen = Assets.instance.images.brickGreen;
+        brickBlue = Assets.instance.images.brickBlue;
+        brickPurple = Assets.instance.images.brickPurple;
 
-        dangerRed = AssetLoader.dangerRed;
-        dangerGreen = AssetLoader.dangerGreen;
-        dangerBlue = AssetLoader.dangerBlue;
-        dangerPurple = AssetLoader.dangerPurple;
-
-        portalRed = AssetLoader.portalRed;
-        portalGreen = AssetLoader.portalGreen;
-        portalBlue = AssetLoader.portalBlue;
+        dangerRed = Assets.instance.images.dangerRed;
+        dangerGreen = Assets.instance.images.dangerGreen;
+        dangerBlue = Assets.instance.images.dangerBlue;
+        dangerPurple = Assets.instance.images.dangerPurple;
     }
 }

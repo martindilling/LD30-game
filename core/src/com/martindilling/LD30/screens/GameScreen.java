@@ -1,6 +1,8 @@
 package com.martindilling.LD30.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.math.Rectangle;
@@ -8,6 +10,7 @@ import com.martindilling.LD30.LD30;
 import com.martindilling.LD30.gameworld.GameRenderer;
 import com.martindilling.LD30.gameworld.GameWorld;
 import com.martindilling.LD30.helpers.InputHandler;
+import com.martindilling.LD30.loaders.Screens;
 
 /**
  * Project: LD30
@@ -15,30 +18,35 @@ import com.martindilling.LD30.helpers.InputHandler;
  * Author:  Martin
  * Date:    23-08-2014
  */
-public class GameScreen implements Screen
+public class GameScreen extends BaseScreen
 {
-    private final Rectangle pauseBounds;
 
-    protected LD30 game;
-    private GameWorld world;
-    private GameRenderer renderer;
+    public LD30 game;
+    public GameWorld world;
+    public GameRenderer renderer;
 
     public GameScreen(LD30 game) {
+        super(game);
+//        LD30.log("GameScreen", "Constructed");
         this.game = game;
-        Gdx.app.log("GameScreen", "Constructed");
 
-        LD30.state = LD30.GAME_RUNNING;
+        LD30.state = LD30.GAME_READY;
 
-        world = new GameWorld();
-        renderer = new GameRenderer(world);
+        world = new GameWorld(this);
+        renderer = new GameRenderer(this);
 
-        pauseBounds = new Rectangle(320 - 64, 480 - 64, 64, 64);
+//        pauseBounds = new Rectangle(320 - 64, 480 - 64, 64, 64);
 
-        Gdx.input.setInputProcessor(new InputHandler(world.getBall(), renderer));
+//        Gdx.input.setInputProcessor(new InputHandler(world.getBall(), renderer));
+    }
+
+    public void loadLevel(int level) {
+        renderer.loadMap(level);
     }
 
     @Override
     public void render(float delta) {
+        super.render(delta);
 //        Gdx.app.log("GameScreen FPS", (1/delta) + "");
 
         switch (LD30.state) {
@@ -54,19 +62,33 @@ public class GameScreen implements Screen
             case LD30.GAME_OVER:
                 gameOver();
                 break;
+            case LD30.GAME_COMPLETE:
+                gameComplete();
+                break;
         }
+    }
+
+    public void restartLevel() {
+        renderer.resetMap();
+    }
+
+    private void gameComplete() {
+
     }
 
     private void updateReady () {
         renderer.render();
-        if (Gdx.input.justTouched()) {
-            LD30.state = LD30.GAME_RUNNING;
-        }
+        stage.draw();
+//        if (Gdx.input.justTouched()) {
+//            LD30.state = LD30.GAME_RUNNING;
+//            LD30.log("State", "Starting...");
+//        }
     }
 
     private void updateGame(float delta) {
         world.update(delta);
         renderer.render();
+        stage.draw();
     }
 
     private void pauseGame() {
@@ -75,11 +97,14 @@ public class GameScreen implements Screen
     }
 
     private void gameOver() {
-
+        LD30.state = LD30.GAME_OVER;
+        renderer.resetMap();
     }
 
     public void startGame() {
         if (LD30.state == LD30.GAME_READY) {
+            LD30.log("State", "Starting...");
+            PlayStartLevelSound();
             LD30.state = LD30.GAME_RUNNING;
         }
     }
@@ -87,36 +112,80 @@ public class GameScreen implements Screen
 
     @Override
     public void dispose() {
-        Gdx.app.log("GameScreen", "dispose() called");
+        super.dispose();
+//        Gdx.app.log("GameScreen", "dispose() called");
     }
 
     @Override
-    public void resize(int width, int height) {
-        Gdx.app.log("GameScreen", "resize() called");
+    protected InputAdapter InputHandler() {
+        return new InputAdapter()
+        {
+            @Override
+            public boolean keyDown(int keycode) {
+                switch (keycode)
+                {
+                    case Input.Keys.ESCAPE:
+//                        LD30.log("Goto Screen", "Level");
+                        game.setScreen(Screens.level);
+                        break;
+                    case Input.Keys.SPACE:
+                        if (LD30.state == LD30.GAME_RUNNING)
+                            renderer.invert();
+                        break;
+                    case Input.Keys.LEFT:
+                        GameReady();
+                        if (LD30.state == LD30.GAME_RUNNING)
+                            world.getBall().startMoving("left");
+                        break;
+                    case Input.Keys.RIGHT:
+                        GameReady();
+                        if (LD30.state == LD30.GAME_RUNNING)
+                            world.getBall().startMoving("right");
+                        break;
+                    case Input.Keys.UP:
+                        GameReady();
+                        if (LD30.state == LD30.GAME_RUNNING)
+                            world.getBall().startMoving("up");
+                        break;
+                    case Input.Keys.DOWN:
+                        GameReady();
+                        if (LD30.state == LD30.GAME_RUNNING)
+                            world.getBall().startMoving("down");
+                        break;
+                }
+                return true;
+            }
 
+            @Override
+            public boolean keyUp(int keycode) {
+                switch (keycode)
+                {
+                    case Input.Keys.LEFT:
+                        if (LD30.state == LD30.GAME_RUNNING)
+                            world.getBall().stopMoving();
+                        break;
+                    case Input.Keys.RIGHT:
+                        if (LD30.state == LD30.GAME_RUNNING)
+                            world.getBall().stopMoving();
+                        break;
+                    case Input.Keys.UP:
+                        if (LD30.state == LD30.GAME_RUNNING)
+                            world.getBall().stopMoving();
+                        break;
+                    case Input.Keys.DOWN:
+                        if (LD30.state == LD30.GAME_RUNNING)
+                            world.getBall().stopMoving();
+                        break;
+                }
+                return true;
+            }
+        };
     }
 
-    @Override
-    public void show() {
-        Gdx.app.log("GameScreen", "show() called");
-
-    }
-
-    @Override
-    public void hide() {
-        Gdx.app.log("GameScreen", "hide() called");
-
-    }
-
-    @Override
-    public void pause() {
-        Gdx.app.log("GameScreen", "pause() called");
-
-    }
-
-    @Override
-    public void resume() {
-        Gdx.app.log("GameScreen", "resume() called");
-
+    public void GameReady() {
+        if (LD30.state == LD30.GAME_READY) {
+            PlayStartLevelSound();
+            LD30.state = LD30.GAME_RUNNING;
+        }
     }
 }

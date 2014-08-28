@@ -1,9 +1,14 @@
 package com.martindilling.LD30.gameobjects;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
-import com.martindilling.LD30.helpers.AssetLoader;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.martindilling.LD30.assets.Assets;
 
 /**
  * Project: LD30
@@ -11,7 +16,7 @@ import com.martindilling.LD30.helpers.AssetLoader;
  * Author:  Martin
  * Date:    23-08-2014
  */
-public class Ball
+public class Ball extends Image
 {
     private Vector2 position;
     private Vector2 oldPosition;
@@ -20,12 +25,16 @@ public class Ball
     private int maxVelocity = 120;
     private int startAcceleration = 100;
     private String orientation = "horizontal";
-    private String direction = "left";
+    public String direction = "left";
 
     private int width;
     private int height;
 
-    private TextureRegion color = AssetLoader.ballWhite;
+    private TextureRegionDrawable colorWhite = new TextureRegionDrawable(Assets.instance.images.ballWhite);
+    private TextureRegionDrawable colorRed = new TextureRegionDrawable(Assets.instance.images.ballRed);
+    private TextureRegionDrawable colorGreen = new TextureRegionDrawable(Assets.instance.images.ballGreen);
+    private TextureRegionDrawable colorBlue = new TextureRegionDrawable(Assets.instance.images.ballBlue);
+    private TextureRegionDrawable colorPurple = new TextureRegionDrawable(Assets.instance.images.ballPurple);
 
     private boolean movingUp = false;
     private boolean movingDown = false;
@@ -40,14 +49,29 @@ public class Ball
     private String wallBounceDir;
     private boolean movingPaused = false;
 
-    public Ball(float x, float y, int height, int width, int angle) {
+    public Ball(float x, float y, int height, int width) {
         this.height = height;
         this.width = width;
         this.position = new Vector2(x, y);
         this.oldPosition = new Vector2(x, y);
         this.velocity = new Vector2(0, 0);
         this.acceleration = new Vector2(0, 0);
+        this.setDrawable(colorWhite);
 
+        fall(direction);
+    }
+
+    public void reset() {
+        stopMoving();
+        stop();
+        velocity.set(0, 0);
+        acceleration.set(0, 0);
+        isFalling = false;
+        isWallBouncing = false;
+        isMoving = false;
+        movingPaused = false;
+        setColor("white");
+        direction = "left";
         fall(direction);
     }
 
@@ -134,7 +158,7 @@ public class Ball
     }
 
     public void wallBounce(String dir) {
-        Gdx.app.log("WallBounce", dir);
+//        Gdx.app.log("WallBounce", dir);
         isWallBouncing = true;
         isMoving = false;
         movingPaused = true;
@@ -169,7 +193,7 @@ public class Ball
             if (wallBounceDir.equals("up")) {
 //                Gdx.app.log("WallBounce", "Check Up");
                 if (Math.abs(bounceStartPos-position.y) > bounceMoveLength) {
-                    Gdx.app.log("WallBounce", "Done bouncing: up");
+//                    Gdx.app.log("WallBounce", "Done bouncing: up");
                     isWallBouncing = false;
                     movingPaused = false;
                     isMoving = true;
@@ -178,7 +202,7 @@ public class Ball
             } else if (wallBounceDir.equals("down")) {
 //                Gdx.app.log("WallBounce", "Check Down");
                 if (Math.abs(bounceStartPos-position.y) > bounceMoveLength) {
-                    Gdx.app.log("WallBounce", "Done bouncing: down");
+//                    Gdx.app.log("WallBounce", "Done bouncing: down");
                     isWallBouncing = false;
                     movingPaused = false;
                     isMoving = true;
@@ -187,7 +211,7 @@ public class Ball
             } else if (wallBounceDir.equals("left")) {
 //                Gdx.app.log("WallBounce", "Check Left");
                 if (Math.abs(bounceStartPos-position.x) > bounceMoveLength) {
-                    Gdx.app.log("WallBounce", "Done bouncing: left");
+//                    Gdx.app.log("WallBounce", "Done bouncing: left");
                     isWallBouncing = false;
                     movingPaused = false;
                     isMoving = true;
@@ -196,7 +220,7 @@ public class Ball
             } else if (wallBounceDir.equals("right")) {
 //                Gdx.app.log("WallBounce", "Check Right");
                 if (Math.abs(bounceStartPos-position.x) > bounceMoveLength) {
-                    Gdx.app.log("WallBounce", "Done bouncing: right");
+//                    Gdx.app.log("WallBounce", "Done bouncing: right");
                     isWallBouncing = false;
                     movingPaused = false;
                     isMoving = true;
@@ -239,33 +263,33 @@ public class Ball
 
     public void setColor(String colorstr) {
         if (colorstr.equals("white")) {
-            color = AssetLoader.ballWhite;
+            this.setDrawable(colorWhite);
         } else if (colorstr.equals("red")) {
-            color = AssetLoader.ballRed;
+            this.setDrawable(colorRed);
         } else if (colorstr.equals("green")) {
-            color = AssetLoader.ballGreen;
+            this.setDrawable(colorGreen);
         } else if (colorstr.equals("blue")) {
-            color = AssetLoader.ballBlue;
+            this.setDrawable(colorBlue);
         } else if (colorstr.equals("purple")) {
-            color = AssetLoader.ballPurple;
+            this.setDrawable(colorPurple);
         }
     }
 
     public String getColorStr() {
-        if (color == AssetLoader.ballRed) {
+        if (this.getDrawable() == colorRed) {
             return "red";
-        } else if (color == AssetLoader.ballGreen) {
+        } else if (this.getDrawable() == colorGreen) {
             return "green";
-        } else if (color == AssetLoader.ballBlue) {
+        } else if (this.getDrawable() == colorBlue) {
             return "blue";
-        } else if (color == AssetLoader.ballPurple) {
+        } else if (this.getDrawable() == colorPurple) {
             return "purple";
         }
         return "white";
     }
 
-    public TextureRegion getColor() {
-        return color;
+    public Drawable getBallColor() {
+        return this.getDrawable();
     }
 
     public void fall(String dir) {
@@ -391,11 +415,11 @@ public class Ball
         position.y = oldPosition.y;
     }
 
-    public int getWidth() {
+    public float getWidth() {
         return width;
     }
 
-    public int getHeight() {
+    public float getHeight() {
         return height;
     }
 }

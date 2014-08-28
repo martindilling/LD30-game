@@ -2,7 +2,9 @@ package com.martindilling.LD30.gameworld;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Rectangle;
+import com.martindilling.LD30.LD30;
 import com.martindilling.LD30.gameobjects.Ball;
+import com.martindilling.LD30.screens.GameScreen;
 
 /**
  * Project: LD30
@@ -17,9 +19,12 @@ public class GameWorld
     private Ball ball;
     private boolean inverted = false;
 
-    public GameWorld() {
-        ball = new Ball(512-8, 320-8, 16, 16, 0);
+    public GameWorld(GameScreen screen) {
+        LD30.log("Game", "Creating Ball");
+        ball = new Ball(512-8, 320-8, 16, 16);
     }
+
+//    public void se
 
     public void update(float delta) {
 //        Gdx.app.log("GameWorld", "update() called");

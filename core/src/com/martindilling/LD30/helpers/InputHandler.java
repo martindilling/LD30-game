@@ -31,62 +31,62 @@ public class InputHandler implements InputProcessor
 
     @Override
     public boolean keyDown(int keycode) {
-        switch (keycode)
-        {
-            case Keys.ESCAPE:
-//                Gdx.app.log("InputHandler", "Keys.SPACE pressed");
-                LD30.state = LD30.GAME_PAUSED;
-                break;
-            case Keys.SPACE:
-//                Gdx.app.log("InputHandler", "Keys.SPACE pressed");
-                startGame();
-                renderer.invert();
-                break;
-            case Keys.LEFT:
-//                Gdx.app.log("InputHandler", "Keys.LEFT pressed");
-                startGame();
-                ball.startMoving("left");
-                break;
-            case Keys.RIGHT:
-//                Gdx.app.log("InputHandler", "Keys.RIGHT pressed");
-                startGame();
-                ball.startMoving("right");
-                break;
-            case Keys.UP:
-//                Gdx.app.log("InputHandler", "Keys.UP pressed");
-                startGame();
-                ball.startMoving("up");
-                break;
-            case Keys.DOWN:
-//                Gdx.app.log("InputHandler", "Keys.DOWN pressed");
-                startGame();
-                ball.startMoving("down");
-                break;
-        }
+//        switch (keycode)
+//        {
+//            case Keys.ESCAPE:
+////                Gdx.app.log("InputHandler", "Keys.SPACE pressed");
+//                LD30.state = LD30.GAME_PAUSED;
+//                break;
+//            case Keys.SPACE:
+////                Gdx.app.log("InputHandler", "Keys.SPACE pressed");
+//                startGame();
+//                renderer.invert();
+//                break;
+//            case Keys.LEFT:
+////                Gdx.app.log("InputHandler", "Keys.LEFT pressed");
+//                startGame();
+//                ball.startMoving("left");
+//                break;
+//            case Keys.RIGHT:
+////                Gdx.app.log("InputHandler", "Keys.RIGHT pressed");
+//                startGame();
+//                ball.startMoving("right");
+//                break;
+//            case Keys.UP:
+////                Gdx.app.log("InputHandler", "Keys.UP pressed");
+//                startGame();
+//                ball.startMoving("up");
+//                break;
+//            case Keys.DOWN:
+////                Gdx.app.log("InputHandler", "Keys.DOWN pressed");
+//                startGame();
+//                ball.startMoving("down");
+//                break;
+//        }
         return true;
     }
 
     @Override
     public boolean keyUp(int keycode) {
-        switch (keycode)
-        {
-            case Keys.LEFT:
-//                Gdx.app.log("InputHandler", "Keys.LEFT released");
-                ball.stopMoving();
-                break;
-            case Keys.RIGHT:
-//                Gdx.app.log("InputHandler", "Keys.RIGHT released");
-                ball.stopMoving();
-                break;
-            case Keys.UP:
-                Gdx.app.log("InputHandler", "Keys.UP released");
-                ball.stopMoving();
-                break;
-            case Keys.DOWN:
-                Gdx.app.log("InputHandler", "Keys.DOWN released");
-                ball.stopMoving();
-                break;
-        }
+//        switch (keycode)
+//        {
+//            case Keys.LEFT:
+////                Gdx.app.log("InputHandler", "Keys.LEFT released");
+//                ball.stopMoving();
+//                break;
+//            case Keys.RIGHT:
+////                Gdx.app.log("InputHandler", "Keys.RIGHT released");
+//                ball.stopMoving();
+//                break;
+//            case Keys.UP:
+//                Gdx.app.log("InputHandler", "Keys.UP released");
+//                ball.stopMoving();
+//                break;
+//            case Keys.DOWN:
+//                Gdx.app.log("InputHandler", "Keys.DOWN released");
+//                ball.stopMoving();
+//                break;
+//        }
         return true;
     }
 
